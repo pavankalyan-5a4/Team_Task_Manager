@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Team Task Manager</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 350px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .dashboard {
+            width: 500px;
+            margin: 30px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+	<div class="dashboard hidden" id="dashboard">
+
+	    <h2>Create Project</h2>
+	    <input id="pname" placeholder="Project Name">
+	    <button onclick="createProject()">Create Project</button>
+
+	    <h2>Task Dashboard</h2>
+
+	</div>
+	<select id="role">
+	    <option value="ADMIN">ADMIN</option>
+	    <option value="MEMBER">MEMBER</option>
+	</select>
+	
+<!-- SIGNUP -->
+<div class="container" id="signupDiv">
+    <h2>Signup</h2>
+    <input id="sname" placeholder="Name">
+    <input id="semail" placeholder="Email">
+    <input id="spassword" type="password" placeholder="Password">
+    <button onclick="signup()">Signup</button>
+    <p>Already have account? <a href="#" onclick="showLogin()">Login</a></p>
+</div>
+
+<!-- LOGIN -->
+<div class="container hidden" id="loginDiv">
+    <h2>Login</h2>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p>New user? <a href="#" onclick="showSignup()">Signup</a></p>
+</div>
+
+<!-- DASHBOARD -->
+   <h2>Task Dashboard</h2>
+
+    <input id="title" placeholder="Task Title">
+    <input id="desc" placeholder="Description">
+
+    <select id="status">
+        <option>TODO</option>
+        <option>IN_PROGRESS</option>
+        <option>DONE</option>
+    </select>
+
+    <button onclick="createTask()">Create Task</button>
+
+    <button onclick="logout()" style="background:red;">Logout</button>
+
+<script>
+	function createProject() {
+
+	    let token = localStorage.getItem("token");
+
+	    if (!token) {
+	        alert("Please login first ❌");
+	        return;
+	    }
+
+	    fetch("/project", {
+	        method: "POST",
+	        headers: {
+	            "Content-Type": "application/json",
+	            "Authorization": "Bearer " + token
+	        },
+	        body: JSON.stringify({
+	            name: document.getElementById("pname").value,
+	            userId: "1"
+	        })
+	    })
+	    .then(res => {
+	        if (!res.ok) {
+	            throw new Error("Project failed");
+	        }
+	        return res.json();
+	    })
+	    .then(data => {
+	        console.log(data);
+	        alert("Project Created ✅");
+	    })
+	    .catch(err => {
+	        console.log(err);
+	        alert("Project Failed ❌");
+	    });
+	}
+
+function showLogin() {
+    document.getElementById("signupDiv").classList.add("hidden");
+    document.getElementById("loginDiv").classList.remove("hidden");
+}
+
+function showSignup() {
+    document.getElementById("loginDiv").classList.add("hidden");
+    document.getElementById("signupDiv").classList.remove("hidden");
+}
+
+function showDashboard() {
+    document.getElementById("loginDiv").classList.add("hidden");
+    document.getElementById("signupDiv").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+}
+
+function signup() {
+    fetch("/auth/signup", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name: document.getElementById("sname").value,
+            email: document.getElementById("semail").value,
+            password: document.getElementById("spassword").value,
+            role: document.getElementById("role").value   // ✅ dynamic
+        })
+    })
+    .then(res => res.text())
+    .then(data => {
+        alert("Signup Successful ✅");
+        showLogin();
+    })
+    .catch(err => {
+        alert("Signup Failed ❌");
+    });
+}
+function login() {
+    fetch("/auth/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        })
+    })
+    .then(res => res.text())
+	.then(token => {
+
+	    console.log("TOKEN:", token);
+
+	    if (!token.includes(".")) {
+	        alert("Invalid token ❌");
+	        return;
+	    }
+
+	    localStorage.setItem("token", token);
+
+	    alert("Login Successful ✅");
+	    showDashboard();
+	})
+    .catch(err => {
+        alert("Login Failed ❌");
+    });
+}
+
+function createTask() {
+
+    let token = localStorage.getItem("token");
+
+    if (!token) {
+        alert("Login first ❌");
+        return;
+    }
+
+    fetch("/tasks", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            title: document.getElementById("title").value,
+            description: document.getElementById("desc").value,
+            status: document.getElementById("status").value,
+            userId: "1",
+            projectId: "1"
+        })
+    })
+    .then(res => {
+        console.log("Status:", res.status);
+
+        if (!res.ok) {
+            throw new Error("Task creation failed ❌");
+        }
+
+        return res.json();
+    })
+    .then(data => {
+        console.log("Task:", data);
+        alert("Task Created ✅");
+    })
+    .catch(err => {
+        console.log(err);
+        alert("Error creating task ❌");
+    });
+}
+function logout() {
+    localStorage.removeItem("token");
+    alert("Logged out");
+    showLogin();
+}
+
+</script>
+
+</body>
+</html>
